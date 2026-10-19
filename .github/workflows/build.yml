@@ -1,0 +1,55 @@
+name: Build IPA (sin firma, para TrollStore)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Clonar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar el proyecto Xcode
+        run: xcodegen generate
+        working-directory: MisPortales
+
+      - name: Compilar (sin firma)
+        working-directory: MisPortales
+        run: |
+          set -eo pipefail
+          xcodebuild \
+            -project MisPortales.xcodeproj \
+            -scheme MisPortales \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Empaquetar el .ipa
+        working-directory: MisPortales
+        run: |
+          set -e
+          APP_PATH="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n1)"
+          echo "App encontrada en: $APP_PATH"
+          rm -rf Payload MisPortales.ipa
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qr MisPortales.ipa Payload
+          echo "IPA creado:"
+          ls -lh MisPortales.ipa
+
+      - name: Subir el .ipa como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: MisPortales-ipa
+          path: MisPortales/MisPortales.ipa
+          if-no-files-found: error
