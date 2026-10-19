@@ -23,9 +23,10 @@ final class WebTab: NSObject, ObservableObject, Identifiable, WKNavigationDelega
 
     private var observadores: [NSKeyValueObservation] = []
 
-    // User-agent de Safari en iPad: los portales lo ven como un navegador normal.
+    // User-agent de Safari en Mac: los portales sirven la versión de ESCRITORIO,
+    // no la móvil. Se combina con preferredContentMode = .desktop (abajo).
     private static let userAgent =
-        "Mozilla/5.0 (iPad; CPU OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6 Mobile/15E148 Safari/604.1"
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15"
 
     init(portal: Portal, dataStore: WKWebsiteDataStore) {
         self.portal = portal
@@ -103,17 +104,21 @@ final class WebTab: NSObject, ObservableObject, Identifiable, WKNavigationDelega
 
     func webView(_ webView: WKWebView,
                  decidePolicyFor navigationAction: WKNavigationAction,
-                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow); return
+                 preferences: WKWebpagePreferences,
+                 decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+        // Modo escritorio: viewport y comportamiento de web de escritorio,
+        // con la resolución real del iPad (no una ventana diminuta).
+        preferences.preferredContentMode = .desktop
+
+        if let url = navigationAction.request.url {
+            // Esquemas que debe abrir el sistema (teléfono, correo, apps externas)
+            let externos = ["tel", "mailto", "facetime", "sms", "itms-apps", "maps"]
+            if let scheme = url.scheme?.lowercased(), externos.contains(scheme) {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel, preferences); return
+            }
         }
-        // Esquemas que debe abrir el sistema (teléfono, correo, apps externas)
-        let externos = ["tel", "mailto", "facetime", "sms", "itms-apps", "maps"]
-        if let scheme = url.scheme?.lowercased(), externos.contains(scheme) {
-            UIApplication.shared.open(url)
-            decisionHandler(.cancel); return
-        }
-        decisionHandler(.allow)
+        decisionHandler(.allow, preferences)
     }
 
     // Descargas (iOS 15+)

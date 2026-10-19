@@ -33,6 +33,7 @@ private struct PopupWeb: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = dataStore   // misma sesión que la pestaña
+        config.defaultWebpagePreferences.preferredContentMode = .desktop
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.customUserAgent = userAgent
         wv.allowsBackForwardNavigationGestures = true
