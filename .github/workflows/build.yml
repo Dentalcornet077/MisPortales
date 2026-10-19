@@ -17,10 +17,8 @@ jobs:
 
       - name: Generar el proyecto Xcode
         run: xcodegen generate
-        working-directory: MisPortales
 
       - name: Compilar (sin firma)
-        working-directory: MisPortales
         run: |
           set -eo pipefail
           xcodebuild \
@@ -35,7 +33,6 @@ jobs:
             clean build
 
       - name: Empaquetar el .ipa
-        working-directory: MisPortales
         run: |
           set -e
           APP_PATH="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n1)"
@@ -51,5 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MisPortales-ipa
-          path: MisPortales/MisPortales.ipa
+          path: MisPortales.ipa
           if-no-files-found: error
