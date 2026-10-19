@@ -7,16 +7,27 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Clonar el repo
         uses: actions/checkout@v4
+
+      - name: Usar el Xcode más reciente
+        run: sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
 
       - name: Instalar XcodeGen
         run: brew install xcodegen
 
       - name: Generar el proyecto Xcode
         run: xcodegen generate
+
+      - name: Diagnóstico del proyecto
+        run: |
+          xcodebuild -version
+          echo "--- objectVersion ---"
+          grep -m1 objectVersion MisPortales.xcodeproj/project.pbxproj || true
+          echo "--- xcodebuild -list ---"
+          xcodebuild -list -project MisPortales.xcodeproj || true
 
       - name: Compilar (sin firma)
         run: |
